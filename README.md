@@ -1,35 +1,193 @@
 # Coda::Docs
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/coda/docs`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+This gem aims to be a complete wrapper around [Coda's REST API](https://coda.io/developers/apis/v1beta1). It is currently work in progress and everything is subject to change.
 
 ## Installation
 
-Add this line to your application's Gemfile:
+The gem is not published on [rubygems.org](rubygems.org) yet so you have to install it directly from GitHub:
 
 ```ruby
-gem 'coda-docs'
+gem "coda-docs", git: "https://github.com/tonsser/coda-docs.git"
 ```
 
-And then execute:
+Remember to run `bundle install`.
 
-    $ bundle
+## Whats missing?
 
-Or install it yourself as:
-
-    $ gem install coda-docs
+- Formula resources
+- Control resources
+- Error handling
+- Pagination
 
 ## Usage
 
-TODO: Write usage instructions here
+### Setup
 
-## Development
+```ruby
+client = CodaDocs.client(api_token: some_token)
+```
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+### Docs
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+```ruby
+# Get all the documents
+client.docs.all
 
-## Contributing
+# Get a single doc
+client.docs.get(doc_id)
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/davidpdrsn/coda-docs.
+# Create a doc
+client.docs.create(title: "Doc title")
+```
+
+### Sections
+
+```ruby
+# Get all sections
+client.docs.all[0].sections.all
+
+# Get a single section
+client.docs.all[0].sections.get(section_id)
+```
+
+### Folders
+
+```ruby
+# Get all folders
+client.docs.all[0].folders.all
+
+# Get a single folder
+client.docs.all[0].folders.get(folder_id)
+```
+
+### Tables
+
+```ruby
+# Get all tables
+client.docs.all[0].tables.all
+
+# Get a single table
+client.docs.all[0].tables.get(table_id)
+```
+
+#### Columns
+
+```ruby
+# Get all columns
+client.docs.all[0].tables.all[0].columns.all
+
+# Get a single column
+client.docs.all[0].tables.all[0].columns.get(column_id)
+```
+
+#### Rows
+
+```ruby
+# Get all rows
+client.docs.all[0].tables.all[0].rows.all
+
+# Get a single row
+client.docs.all[0].tables.all[0].rows.get(row_id)
+
+# Insert row
+doc = client.docs.all[0]
+table = doc.tables.alll[0]
+columns = table.columns.all
+
+table.rows.insert(
+  [
+    {
+      columns[0] => "value",
+      columns[1] => "other value",
+    }
+  ]
+)
+
+# Update row
+doc = client.docs.all[0]
+table = doc.tables.alll[0]
+columns = table.columns.all
+
+table.rows.update(
+  row_id,
+  {
+    columns[0] => "value",
+    columns[1] => "other value",
+  }
+)
+
+# Delete row
+client.docs[0].tables.all[0].rows.delete(row_id)
+```
+
+### Formulas
+
+TODO
+
+### Control
+
+TODO
+
+### User info
+
+```ruby
+client.user_info
+```
+
+### Resolve browser link
+
+```ruby
+client.resolve_browser_link(url)
+```
+
+### What methods can I call?
+
+All resources aim have to methods that match the keys in the HTTP responses. For example the JSON for a document looks like so:
+
+```json
+{
+  "id": "AbCDeFGH",
+  "type": "doc",
+  "href": "https://coda.io/apis/v1beta1/docs/AbCDeFGH",
+  "browserLink": "https://coda.io/d/_dAbCDeFGH",
+  "name": "Product Launch Hub",
+  "owner": "user@example.com",
+  "sourceDoc": {
+    "id": "AbCDeFGH",
+    "type": "doc",
+    "href": "https://coda.io/apis/v1beta1/docs/AbCDeFGH"
+  },
+  "createdAt": "2018-04-11T00:18:57.946Z",
+  "updatedAt": "2018-04-11T00:18:57.946Z"
+}
+```
+
+So you're able to call all those keys as methods on a doc object:
+
+```ruby
+doc = client.docs[0]
+
+doc.id
+doc.type
+doc.href
+doc.browser_link
+# etc
+```
+
+Note that the keys are converted from camelcase to snakecase.
+
+To get the exact JSON for an object you can always call the `json` method.
+
+```ruby
+doc = client.docs[0]
+
+doc.json
+# =>
+#  {
+#    "id": "AbCDeFGH",
+#    "type": "doc",
+#    "href": "https://coda.io/apis/v1beta1/docs/AbCDeFGH",
+#    "browserLink": "https://coda.io/d/_dAbCDeFGH",
+#    etc...
+#  }
+```

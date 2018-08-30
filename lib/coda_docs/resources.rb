@@ -2,6 +2,14 @@ require "coda_docs/string_helpers"
 module CodaDocs
   module Resources
     class Resource
+      def method_missing(name, *)
+        if name == :json
+          @json
+        else
+          super
+        end
+      end
+
       extend TakesMacro
 
       private
