@@ -117,7 +117,7 @@ table.rows.update(
 )
 
 # Delete row
-client.docs[0].tables.all[0].rows.delete(row_id)
+client.docs.all[0].tables.all[0].rows.delete(row_id)
 ```
 
 ### Formulas
@@ -165,7 +165,7 @@ All resources aim have to methods that match the keys in the HTTP responses. For
 So you're able to call all those keys as methods on a doc object:
 
 ```ruby
-doc = client.docs[0]
+doc = client.docs.all[0]
 
 doc.id
 doc.type
@@ -179,7 +179,7 @@ Note that the keys are converted from camelcase to snakecase.
 To get the exact JSON for an object you can always call the `json` method.
 
 ```ruby
-doc = client.docs[0]
+doc = client.docs.all[0]
 
 doc.json
 # =>
