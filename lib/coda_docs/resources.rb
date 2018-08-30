@@ -90,6 +90,14 @@ module CodaDocs
         client.tables(self)
       end
 
+      def formulas
+        client.formulas(self)
+      end
+
+      def controls
+        client.controls(self)
+      end
+
       def created_at
         value_at "createdAt", &Time.method(:parse)
       end
@@ -236,6 +244,28 @@ module CodaDocs
 
       define_getters(
         :href,
+      )
+    end
+
+    class Formula < Resource
+      takes [:json!, :client!, :doc!]
+
+      define_getters(
+        :id,
+        :type,
+        :href,
+        :name,
+      )
+    end
+
+    class Control < Resource
+      takes [:json!, :client!, :doc!]
+
+      define_getters(
+        :id,
+        :type,
+        :href,
+        :name,
       )
     end
   end

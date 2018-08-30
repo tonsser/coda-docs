@@ -29,8 +29,13 @@ module CodaDocs
       Rows.new(client: self, api_token: api_token, doc: doc, table: table)
     end
 
-    # TODO: Formulas
-    # TODO: Controls
+    def formulas(doc)
+      Formulas.new(client: self, api_token: api_token, doc: doc)
+    end
+
+    def controls(doc)
+      Controls.new(client: self, api_token: api_token, doc: doc)
+    end
 
     def user_info
       UserInfo.new(api_token: api_token).get
@@ -319,6 +324,48 @@ module CodaDocs
       end
     end
 
+    class Formulas < CodaHttpClient
+      extend TakesMacro
+      takes [:api_token!, :doc!, :client!]
+
+      def all
+        parse(
+          coda_api_get("/docs/#{doc.id}/formulas"),
+          with: ResponseParsers::List.new,
+          doc: doc,
+        )
+      end
+
+      def get(id)
+        parse(
+          coda_api_get("/docs/#{doc.id}/formulas/#{id}"),
+          with: ResponseParsers::Resource.new,
+          doc: doc,
+        )
+      end
+    end
+
+    class Controls < CodaHttpClient
+      extend TakesMacro
+      takes [:api_token!, :doc!, :client!]
+
+      def all
+        parse(
+          coda_api_get("/docs/#{doc.id}/controls"),
+          with: ResponseParsers::List.new,
+          doc: doc,
+        )
+      end
+
+      def get(id)
+        parse(
+          coda_api_get("/docs/#{doc.id}/controls/#{id}"),
+          with: ResponseParsers::Resource.new,
+          doc: doc,
+        )
+      end
+    end
+
     class UserInfo < CodaHttpClient
       takes [:api_token!]
 
@@ -383,6 +430,10 @@ module CodaDocs
           Resources::Column.new(json: json, client: client, doc: doc)
         when "row"
           Resources::Row.new(json: json, client: client, doc: doc)
+        when "formula"
+          Resources::Formula.new(json: json, client: client, doc: doc)
+        when "control"
+          Resources::Controls.new(json: json, client: client, doc: doc)
         when "user"
           Resources::User.new(json: json)
         when "apiLink"

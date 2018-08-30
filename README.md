@@ -14,8 +14,6 @@ Remember to run `bundle install`.
 
 ## Whats missing?
 
-- Formula resources
-- Control resources
 - Error handling
 - Pagination
 
@@ -122,11 +120,23 @@ client.docs.all[0].tables.all[0].rows.delete(row_id)
 
 ### Formulas
 
-TODO
+```ruby
+# Get all formulas
+client.docs.all[0].formulas.all
+
+# Get a single formula
+client.docs.all[0].formulas.get(formula_id)
+```
 
 ### Control
 
-TODO
+```ruby
+# Get all controls
+client.docs.all[0].controls.all
+
+# Get a single control
+client.docs.all[0].controls.get(control_id)
+```
 
 ### User info
 
