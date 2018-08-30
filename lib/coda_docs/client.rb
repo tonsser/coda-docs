@@ -32,12 +32,55 @@ module CodaDocs
 
       private
 
-      def http_get(url)
+      def coda_api_get(url)
         response = Http.get(
           "#{API_URL}#{url}",
           headers: { "Authorization" => "Bearer #{api_token}" },
         )
-        raise "Request failed" unless response.status == 200
+        raise "Request failed" unless response.success?
+        response
+      end
+
+      def coda_api_post(url, payload: "")
+        if payload.is_a?(Hash)
+          payload = payload.to_json
+        end
+
+        response = Http.post(
+          "#{API_URL}#{url}",
+          payload: payload,
+          headers: {
+            "Authorization" => "Bearer #{api_token}",
+            "Content-Type" => "application/json",
+          },
+        )
+        raise "Request failed" unless response.success?
+        response
+      end
+
+      def coda_api_put(url, payload: "")
+        if payload.is_a?(Hash)
+          payload = payload.to_json
+        end
+
+        response = Http.put(
+          "#{API_URL}#{url}",
+          payload: payload,
+          headers: {
+            "Authorization" => "Bearer #{api_token}",
+            "Content-Type" => "application/json",
+          },
+        )
+        raise "Request failed" unless response.success?
+        response
+      end
+
+      def coda_api_delete(url)
+        response = Http.delete(
+          "#{API_URL}#{url}",
+          headers: { "Authorization" => "Bearer #{api_token}" },
+        )
+        raise "Request failed" unless response.success?
         response
       end
 
@@ -51,14 +94,25 @@ module CodaDocs
       takes [:api_token!]
 
       def all
-        parse(http_get("/docs"), with: ResponseParsers::List.new)
+        parse(coda_api_get("/docs"), with: ResponseParsers::List.new)
       end
 
       def get(id)
-        parse(http_get("/docs/#{id}"), with: ResponseParsers::Resource.new)
+        parse(coda_api_get("/docs/#{id}"), with: ResponseParsers::Resource.new)
       end
 
-      # TODO: create
+      def create(title:, source_doc_id: nil)
+        payload = { title: title }
+
+        if source_doc_id
+          payload[:sourceDoc] = source_doc_id
+        end
+
+        parse(
+          coda_api_post("/docs", payload: payload),
+          with: ResponseParsers::Resource.new,
+        )
+      end
     end
 
     class Sections < CodaHttpClient
@@ -67,14 +121,14 @@ module CodaDocs
 
       def all
         parse(
-          http_get("/docs/#{doc.id}/sections"),
+          coda_api_get("/docs/#{doc.id}/sections"),
           with: ResponseParsers::List.new,
         )
       end
 
       def get(id)
         parse(
-          http_get("/docs/#{doc.id}/sections/#{id}"),
+          coda_api_get("/docs/#{doc.id}/sections/#{id}"),
           with: ResponseParsers::Resource.new,
         )
       end
@@ -86,14 +140,14 @@ module CodaDocs
 
       def all
         parse(
-          http_get("/docs/#{doc.id}/folders"),
+          coda_api_get("/docs/#{doc.id}/folders"),
           with: ResponseParsers::List.new,
         )
       end
 
       def get(id)
         parse(
-          http_get("/docs/#{doc.id}/folders/#{id}"),
+          coda_api_get("/docs/#{doc.id}/folders/#{id}"),
           with: ResponseParsers::Resource.new,
         )
       end
@@ -105,14 +159,14 @@ module CodaDocs
 
       def all
         parse(
-          http_get("/docs/#{doc.id}/tables"),
+          coda_api_get("/docs/#{doc.id}/tables"),
           with: ResponseParsers::List.new,
         )
       end
 
       def get(id)
         parse(
-          http_get("/docs/#{doc.id}/tables/#{id}"),
+          coda_api_get("/docs/#{doc.id}/tables/#{id}"),
           with: ResponseParsers::Resource.new,
         )
       end
@@ -124,14 +178,14 @@ module CodaDocs
 
       def all
         parse(
-          http_get("/docs/#{doc.id}/tables/#{table.id}/columns"),
+          coda_api_get("/docs/#{doc.id}/tables/#{table.id}/columns"),
           with: ResponseParsers::List.new,
         )
       end
 
       def get(id)
         parse(
-          http_get("/docs/#{doc.id}/tables/#{table.id}/columns/#{id}"),
+          coda_api_get("/docs/#{doc.id}/tables/#{table.id}/columns/#{id}"),
           with: ResponseParsers::Resource.new,
         )
       end
@@ -143,21 +197,74 @@ module CodaDocs
 
       def all
         parse(
-          http_get("/docs/#{doc.id}/tables/#{table.id}/rows"),
+          coda_api_get("/docs/#{doc.id}/tables/#{table.id}/rows"),
           with: ResponseParsers::List.new,
         )
       end
 
       def get(id)
         parse(
-          http_get("/docs/#{doc.id}/tables/#{table.id}/rows/#{id}"),
+          coda_api_get("/docs/#{doc.id}/tables/#{table.id}/rows/#{id}"),
           with: ResponseParsers::Resource.new,
         )
       end
 
-      # TODO: insert/upsert
-      # TODO: update
-      # TODO: delete
+      def insert(rows, key_column_ids: nil)
+        payload = {
+          rows: rows.map do |row|
+            {
+              cells: row.map do |column_id, value|
+                {
+                  column: column_id,
+                  value: value,
+                }
+              end
+            }
+          end,
+        }
+
+        if key_column_ids
+          payload[:keyColumns] = key_column_ids
+        end
+
+        parse(
+          coda_api_post(
+            "/docs/#{doc.id}/tables/#{table.id}/rows",
+            payload: payload,
+          ),
+          with: ResponseParsers::DontParse.new,
+        )
+      end
+
+      def update(id, row)
+        payload = {
+          row: {
+            cells: row.map do |column_id, value|
+              {
+                column: column_id,
+                value: value,
+              }
+            end
+          }
+        }
+
+        parse(
+          coda_api_put(
+            "/docs/#{doc.id}/tables/#{table.id}/rows/#{id}",
+            payload: payload,
+          ),
+          with: ResponseParsers::DontParse.new,
+        )
+      end
+
+      def delete(id)
+        parse(
+          coda_api_delete(
+            "/docs/#{doc.id}/tables/#{table.id}/rows/#{id}",
+          ),
+          with: ResponseParsers::DontParse.new,
+        )
+      end
     end
   end
 
@@ -192,6 +299,12 @@ module CodaDocs
         else
           raise "Unknown type: #{type.inspect}"
         end
+      end
+    end
+
+    class DontParse
+      def parse(json)
+        json
       end
     end
   end

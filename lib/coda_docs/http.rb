@@ -14,6 +14,42 @@ module CodaDocs
 
         Response.from_rest_client_response(response)
       end
+
+      def post(url, payload:, headers: {})
+        raise "Invalid payload type: #{payload.class}" unless payload.is_a?(String)
+
+        response = RestClient::Request.execute(
+          url: url,
+          method: :post,
+          payload: payload,
+          headers: headers,
+        )
+
+        Response.from_rest_client_response(response)
+      end
+
+      def put(url, payload:, headers: {})
+        raise "Invalid payload type: #{payload.class}" unless payload.is_a?(String)
+
+        response = RestClient::Request.execute(
+          url: url,
+          method: :put,
+          payload: payload,
+          headers: headers,
+        )
+
+        Response.from_rest_client_response(response)
+      end
+
+      def delete(url, headers: {})
+        response = RestClient::Request.execute(
+          url: url,
+          method: :delete,
+          headers: headers,
+        )
+
+        Response.from_rest_client_response(response)
+      end
     end
 
     class Response
@@ -30,6 +66,10 @@ module CodaDocs
 
       def status
         @status ||= @get_status.call
+      end
+
+      def success?
+        status.to_s.match?(/^2\d\d/)
       end
 
       def headers
