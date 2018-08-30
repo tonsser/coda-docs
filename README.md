@@ -14,6 +14,7 @@ Remember to run `bundle install`.
 
 ## Whats missing?
 
+- [Query params for `columns.all`](https://coda.io/developers/apis/v1beta1#operation/listRows)
 - Error handling
 
 ## Usage
