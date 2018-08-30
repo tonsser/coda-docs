@@ -1,4 +1,4 @@
-# Coda::Docs
+# `CodaDocs`
 
 This gem aims to be a complete wrapper around [Coda's REST API](https://coda.io/developers/apis/v1beta1). It is currently work in progress and everything is subject to change.
 
