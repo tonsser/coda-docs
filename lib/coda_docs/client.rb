@@ -118,10 +118,6 @@ module CodaDocs
         if options[:limit]
           params[:limit] = options[:limit]
         end
-
-        if options[:page_token]
-          params[:pageToken] = options[:page_token]
-        end
       end
     end
 
