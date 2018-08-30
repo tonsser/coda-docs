@@ -3,7 +3,6 @@ module CodaDocs
   module Resources
     class Resource
       extend TakesMacro
-      takes :json
 
       private
 
@@ -21,7 +20,11 @@ module CodaDocs
         methods.each do |method|
           define_method(:parent) do
             value_at("parent") do |value|
-              CodaDocs::ResponseParsers::Resource.new.parse(value)
+              CodaDocs::ResponseParsers::Resource.new.parse(
+                json: value,
+                client: client,
+                doc: doc,
+              )
             end
           end
         end
@@ -32,7 +35,13 @@ module CodaDocs
           define_method(:children) do
             value_at("children") do |values|
               parser = CodaDocs::ResponseParsers::Resource.new
-              values.map { |value| parser.parse(value) }
+              values.map do |value|
+                parser.parse(
+                  json: value,
+                  client: client,
+                  doc: doc,
+                )
+              end
             end
           end
         end
@@ -50,6 +59,8 @@ module CodaDocs
     end
 
     class Doc < Resource
+      takes [:json!, :client!]
+
       define_getters(
         :id,
         :type,
@@ -58,6 +69,18 @@ module CodaDocs
         :name,
         :owner,
       )
+
+      def sections
+        client.sections(self)
+      end
+
+      def folders
+        client.folders(self)
+      end
+
+      def tables
+        client.tables(self)
+      end
 
       def created_at
         value_at "createdAt", &Time.method(:parse)
@@ -73,6 +96,8 @@ module CodaDocs
     end
 
     class SourceDoc < Resource
+      takes [:json!, :client!, :doc!]
+
       define_getters(
         :id,
         :type,
@@ -81,6 +106,8 @@ module CodaDocs
     end
 
     class Section < Resource
+      takes [:json!, :client!, :doc!]
+
       define_getters(
         :id,
         :type,
@@ -95,6 +122,8 @@ module CodaDocs
     end
 
     class Folder < Resource
+      takes [:json!, :client!, :doc!]
+
       define_getters(
         :id,
         :type,
@@ -108,15 +137,27 @@ module CodaDocs
     end
 
     class Table < Resource
+      takes [:json!, :client!, :doc!]
+
       define_getters(
         :id,
         :type,
         :href,
         :name,
       )
+
+      def columns
+        client.columns(doc, self)
+      end
+
+      def rows
+        client.rows(doc, self)
+      end
     end
 
     class Column < Resource
+      takes [:json!, :client!, :doc!]
+
       define_getters(
         :id,
         :type,
@@ -132,6 +173,8 @@ module CodaDocs
     end
 
     class Row < Resource
+      takes [:json!, :client!, :doc!]
+
       define_getters(
         :id,
         :type,
@@ -153,6 +196,39 @@ module CodaDocs
       def updated_at
         value_at "updatedAt", &Time.method(:parse)
       end
+    end
+
+    class User < Resource
+      takes [:json!]
+
+      define_getters(
+        :name,
+        :loginId,
+        :type,
+        :href,
+      )
+    end
+
+    class ApiLink < Resource
+      takes [:json!]
+
+      define_getters(
+        :type,
+        :href,
+        :browser_link,
+      )
+
+      def resource
+        value_at("resource") { |value| ApiLinkResource.new(json: value) }
+      end
+    end
+
+    class ApiLinkResource < Resource
+      takes [:json!]
+
+      define_getters(
+        :href,
+      )
     end
   end
 end

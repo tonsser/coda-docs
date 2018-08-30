@@ -5,10 +5,15 @@ module CodaDocs
   module Http
     class << self
       def get(url, params: {}, headers: {})
+        url = if params
+                "#{url}?#{to_query_string(params)}"
+              else
+                url
+              end
+
         response = RestClient::Request.execute(
           url: url,
           method: :get,
-          params: params,
           headers: headers,
         )
 
@@ -49,6 +54,14 @@ module CodaDocs
         )
 
         Response.from_rest_client_response(response)
+      end
+
+      private
+
+      def to_query_string(hash)
+        hash.map do |key, value|
+          "#{key}=#{CGI.escape(value)}"
+        end.join("&")
       end
     end
 
