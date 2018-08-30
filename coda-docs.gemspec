@@ -1,10 +1,10 @@
 lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "coda/docs/version"
+require "coda_docs/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "coda-docs"
-  spec.version       = Coda::Docs::VERSION
+  spec.version       = CodaDocs::VERSION
   spec.authors       = ["David Pedersen"]
   spec.email         = ["david.pdrsn@gmail.com"]
 
