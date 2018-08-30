@@ -1,4 +1,5 @@
 require "cgi"
+require "delegate"
 
 module CodaDocs
   class Client
@@ -43,6 +44,10 @@ module CodaDocs
 
     def resolve_browser_link(link)
       ResolveBrowserLink.new(api_token: api_token).get(link)
+    end
+
+    def next_page(doc, link)
+      NextPageLink.new(client: self, api_token: api_token, doc: doc).get(link)
     end
 
     class CodaHttpClient
@@ -108,14 +113,40 @@ module CodaDocs
       def parse(response, with:, doc:)
         with.parse(json: response.json, client: client, doc: doc)
       end
+
+      def add_pagination_params(params, options)
+        if options[:limit]
+          params[:limit] = options[:limit]
+        end
+
+        if options[:page_token]
+          params[:pageToken] = options[:page_token]
+        end
+      end
     end
 
     class Docs < CodaHttpClient
       takes [:api_token!, :client!]
 
-      def all
+      def all(options = {})
+        params = {}
+
+        if options[:is_owner]
+          params[:isOwner] = options[:is_owner]
+        end
+
+        if options[:query]
+          params[:query] = options[:query]
+        end
+
+        if options[:source_doc_id]
+          params[:sourceDoc] = options[:source_doc_id]
+        end
+
+        add_pagination_params(params, options)
+
         parse(
-          coda_api_get("/docs"),
+          coda_api_get("/docs", params: params),
           with: ResponseParsers::List.new,
           doc: self,
         )
@@ -148,9 +179,11 @@ module CodaDocs
       extend TakesMacro
       takes [:api_token!, :doc!, :client!]
 
-      def all
+      def all(options = {})
+        params = {}
+        add_pagination_params(params, options)
         parse(
-          coda_api_get("/docs/#{doc.id}/sections"),
+          coda_api_get("/docs/#{doc.id}/sections", params: params),
           with: ResponseParsers::List.new,
           doc: doc,
         )
@@ -169,9 +202,11 @@ module CodaDocs
       extend TakesMacro
       takes [:api_token!, :doc!, :client!]
 
-      def all
+      def all(options = {})
+        params = {}
+        add_pagination_params(params, options)
         parse(
-          coda_api_get("/docs/#{doc.id}/folders"),
+          coda_api_get("/docs/#{doc.id}/folders", params: params),
           with: ResponseParsers::List.new,
           doc: doc,
         )
@@ -190,9 +225,11 @@ module CodaDocs
       extend TakesMacro
       takes [:api_token!, :doc!, :client!]
 
-      def all
+      def all(options = {})
+        params = {}
+        add_pagination_params(params, options)
         parse(
-          coda_api_get("/docs/#{doc.id}/tables"),
+          coda_api_get("/docs/#{doc.id}/tables", params: params),
           with: ResponseParsers::List.new,
           doc: doc,
         )
@@ -211,9 +248,11 @@ module CodaDocs
       extend TakesMacro
       takes [:api_token!, :doc!, :table!, :client!]
 
-      def all
+      def all(options = {})
+        params = {}
+        add_pagination_params(params, options)
         parse(
-          coda_api_get("/docs/#{doc.id}/tables/#{table.id}/columns"),
+          coda_api_get("/docs/#{doc.id}/tables/#{table.id}/columns", params: params),
           with: ResponseParsers::List.new,
           doc: doc,
         )
@@ -231,9 +270,11 @@ module CodaDocs
     class Rows < CodaHttpClient
       takes [:api_token!, :doc!, :table!, :client!]
 
-      def all
+      def all(options = {})
+        params = {}
+        add_pagination_params(params, options)
         parse(
-          coda_api_get("/docs/#{doc.id}/tables/#{table.id}/rows"),
+          coda_api_get("/docs/#{doc.id}/tables/#{table.id}/rows", params: params),
           with: ResponseParsers::List.new,
           doc: doc,
         )
@@ -328,9 +369,11 @@ module CodaDocs
       extend TakesMacro
       takes [:api_token!, :doc!, :client!]
 
-      def all
+      def all(options = {})
+        params = {}
+        add_pagination_params(params, options)
         parse(
-          coda_api_get("/docs/#{doc.id}/formulas"),
+          coda_api_get("/docs/#{doc.id}/formulas", params: params),
           with: ResponseParsers::List.new,
           doc: doc,
         )
@@ -349,9 +392,11 @@ module CodaDocs
       extend TakesMacro
       takes [:api_token!, :doc!, :client!]
 
-      def all
+      def all(options = {})
+        params = {}
+        add_pagination_params(params, options)
         parse(
-          coda_api_get("/docs/#{doc.id}/controls"),
+          coda_api_get("/docs/#{doc.id}/controls", params: params),
           with: ResponseParsers::List.new,
           doc: doc,
         )
@@ -400,6 +445,20 @@ module CodaDocs
         nil
       end
     end
+
+    class NextPageLink < CodaHttpClient
+      takes [:client!, :api_token!, :doc!]
+
+      def get(link)
+        relative_url = link.sub(API_URL, "")
+
+        parse(
+          coda_api_get(relative_url),
+          with: ResponseParsers::List.new,
+          doc: doc,
+        )
+      end
+    end
   end
 
   module ResponseParsers
@@ -407,9 +466,18 @@ module CodaDocs
       def parse(json:, client:, doc:)
         resource_parser = ResponseParsers::Resource.new
 
-        json.fetch("items").map do |item|
+        next_page_link = json["nextPageLink"]
+
+        resources = json.fetch("items").map do |item|
           resource_parser.parse(json: item, client: client, doc: doc)
         end
+
+        PaginatedResourceList.new(
+          resources: resources,
+          next_page_link: next_page_link,
+          client: client,
+          doc: doc,
+        )
       end
     end
 
@@ -449,5 +517,26 @@ module CodaDocs
         options.fetch :json
       end
     end
+  end
+
+  class PaginatedResourceList < SimpleDelegator
+    def initialize(resources:, next_page_link:, client:, doc:)
+      super(resources)
+      @next_page_link = next_page_link
+      @client = client
+      @doc = doc
+    end
+
+    def next_page?
+      !!next_page_link
+    end
+
+    def next_page
+      client.next_page(doc, next_page_link)
+    end
+
+    private
+
+    attr_reader :client, :next_page_link, :doc
   end
 end

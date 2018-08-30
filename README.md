@@ -15,7 +15,6 @@ Remember to run `bundle install`.
 ## Whats missing?
 
 - Error handling
-- Pagination
 
 ## Usage
 
@@ -200,4 +199,16 @@ doc.json
 #    "browserLink": "https://coda.io/d/_dAbCDeFGH",
 #    etc...
 #  }
+```
+
+### Pagination
+
+Any object returned from an `all` method is paginated. You can load subsequent pages like so:
+
+```ruby
+page = client.docs.all(limit: 2)
+
+while page.next_page?
+  page = page.next_page
+end
 ```

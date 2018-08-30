@@ -60,7 +60,13 @@ module CodaDocs
 
       def to_query_string(hash)
         hash.map do |key, value|
-          "#{key}=#{CGI.escape(value)}"
+          escaped = if value.is_a?(String)
+                      CGI.escape(value)
+                    else
+                      value
+                    end
+
+          "#{key}=#{escaped}"
         end.join("&")
       end
     end
